@@ -50,5 +50,5 @@ namespace Inteli.Mantainability.Controllers
         }
     }
 
-    internal record FreteCalculoDetalhes(string Transportadora, decimal Valor, int PrazoEmDias);
+    public record FreteCalculoDetalhes(string Transportadora, decimal Valor, int PrazoEmDias);
 }

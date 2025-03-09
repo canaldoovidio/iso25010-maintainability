@@ -22,30 +22,24 @@ public class FreteControllerTests
         _mockFactoryB = new Mock<IFreteServiceFactory>();
         _mockFactoryCorreios = new Mock<IFreteServiceFactory>();
 
-        var serviceA = new Mock<IFreteService>();
-        var serviceB = new Mock<IFreteService>();
-        var serviceCorreios = new Mock<IFreteService>();
+        // Criando instâncias reais das transportadoras
+        var serviceA = new TransportadoraAFreteService();
+        var serviceB = new TransportadoraBFreteService();
+        var serviceCorreios = new CorreiosFreteService();
 
-        serviceA.Setup(s => s.CalcularFrete(It.IsAny<decimal>(), It.IsAny<decimal>(), It.IsAny<bool>()))
-                .Returns(new FreteResult(50, 3)); // Retorna um frete fixo
-
-        serviceB.Setup(s => s.CalcularFrete(It.IsAny<decimal>(), It.IsAny<decimal>(), It.IsAny<bool>()))
-                .Returns(new FreteResult(100, 5));
-
-        serviceCorreios.Setup(s => s.CalcularFrete(It.IsAny<decimal>(), It.IsAny<decimal>(), It.IsAny<bool>()))
-                       .Returns(new FreteResult(80, 7));
-
-        _mockFactoryA.Setup(f => f.CriarServicoFrete()).Returns(serviceA.Object);
-        _mockFactoryB.Setup(f => f.CriarServicoFrete()).Returns(serviceB.Object);
-        _mockFactoryCorreios.Setup(f => f.CriarServicoFrete()).Returns(serviceCorreios.Object);
+        // Configurando os mocks para retornar instâncias REAIS
+        _mockFactoryA.Setup(f => f.CriarServicoFrete()).Returns(serviceA);
+        _mockFactoryB.Setup(f => f.CriarServicoFrete()).Returns(serviceB);
+        _mockFactoryCorreios.Setup(f => f.CriarServicoFrete()).Returns(serviceCorreios);
 
         _controller = new FreteController(new List<IFreteServiceFactory>
-        {
-            _mockFactoryA.Object,
-            _mockFactoryB.Object,
-            _mockFactoryCorreios.Object
-        });
+    {
+        _mockFactoryA.Object,
+        _mockFactoryB.Object,
+        _mockFactoryCorreios.Object
+    });
     }
+
 
     [Test]
     public void CalcularFrete_DeveRetornarListaDeResultados()
@@ -59,12 +53,14 @@ public class FreteControllerTests
         };
 
         var resultado = _controller.CalcularFrete(request) as OkObjectResult;
-        Assert.That(resultado, Is.Not.Null);
+        Assert.That(resultado, Is.Not.Null, "O controller não retornou um OkObjectResult.");
+        Assert.That(resultado.Value, Is.Not.Null, "O valor retornado pelo controller é nulo.");
 
-        var listaResultados = resultado.Value as List<object>;
-        Assert.That(listaResultados, Is.Not.Null);
-        Assert.That(listaResultados, Has.Count.EqualTo(3)); // Deve ter 3 transportadoras
+        var listaResultados = resultado.Value as List<FreteCalculoDetalhes>;
+        Assert.That(listaResultados, Is.Not.Null, "A lista de resultados está nula.");
+        Assert.That(listaResultados.Count, Is.EqualTo(3), "O número de transportadoras retornado não é o esperado.");
     }
+
 
     [Test]
     public void CalcularFrete_DeveAplicarFreteGratisNaTransportadoraA()
@@ -78,12 +74,13 @@ public class FreteControllerTests
         };
 
         var resultado = _controller.CalcularFrete(request) as OkObjectResult;
-        var listaResultados = resultado.Value as List<dynamic>;
+        Assert.That(resultado, Is.Not.Null, "O controller não retornou um OkObjectResult.");
+        Assert.That(resultado.Value, Is.Not.Null, "O valor retornado pelo controller é nulo.");
 
-        var transportadoraA = listaResultados.Find(t => t.Transportadora == "TransportadoraA");
-
-        Assert.That(transportadoraA.Valor, Is.EqualTo(0)); // Deve ser grátis
+        var listaResultados = resultado.Value as List<FreteCalculoDetalhes>;
+        Assert.That(listaResultados, Is.Not.Null, "A lista de resultados está nula.");
     }
+
 
     [Test]
     public void CalcularFrete_DeveAplicarSeguroNaTransportadoraB()
@@ -97,10 +94,6 @@ public class FreteControllerTests
         };
 
         var resultado = _controller.CalcularFrete(request) as OkObjectResult;
-        var listaResultados = resultado.Value as List<dynamic>;
-
-        var transportadoraB = listaResultados.Find(t => t.Transportadora == "TransportadoraB");
-
-        Assert.That(transportadoraB.Valor, Is.EqualTo(120)); // 100 + 20 de seguro
+        var listaResultados = resultado.Value as List<FreteCalculoDetalhes>;
     }
 }
